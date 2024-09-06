@@ -11,53 +11,152 @@
             background-color: black;
             color: #00ff00;
             font-family: monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            position: relative;
         }
 
         canvas {
             display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #snakeCanvas {
+            z-index: 1; /* Ensure snake canvas is on top */
+        }
+
+        #matrix {
+            z-index: 0; /* Matrix canvas remains in the background */
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            z-index: 2; /* Ensure score is on top */
         }
     </style>
 </head>
 <body>
     <canvas id="matrix"></canvas>
+    <canvas id="snakeCanvas"></canvas>
+    <div id="score">Score: 0</div>
 
     <script>
-        const canvas = document.getElementById("matrix");
-        const ctx = canvas.getContext("2d");
+        // Matrix Effect
+        const matrixCanvas = document.getElementById("matrix");
+        const matrixCtx = matrixCanvas.getContext("2d");
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        matrixCanvas.width = window.innerWidth;
+        matrixCanvas.height = window.innerHeight;
 
         const fontSize = 16;
-        const columns = canvas.width / fontSize;
+        const columns = matrixCanvas.width / fontSize;
         const drops = Array(Math.floor(columns)).fill(1);
 
-        const draw = () => {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const drawMatrix = () => {
+            matrixCtx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
-            ctx.fillStyle = "#00ff00";
-            ctx.font = `${fontSize}px monospace`;
+            matrixCtx.fillStyle = "#00ff00";
+            matrixCtx.font = `${fontSize}px monospace`;
 
             drops.forEach((y, i) => {
                 const text = String.fromCharCode(Math.random() * 128);
                 const x = i * fontSize;
 
-                ctx.fillText(text, x, y * fontSize);
+                matrixCtx.fillText(text, x, y * fontSize);
 
-                if (y * fontSize > canvas.height && Math.random() > 0.975) {
+                if (y * fontSize > matrixCanvas.height && Math.random() > 0.975) {
                     drops[i] = 0;
                 }
                 drops[i]++;
             });
         };
 
-        setInterval(draw, 50);
+        setInterval(drawMatrix, 50);
 
         window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
         });
+
+        // Snake Game
+        const snakeCanvas = document.getElementById("snakeCanvas");
+        const snakeCtx = snakeCanvas.getContext("2d");
+
+        snakeCanvas.width = window.innerWidth;
+        snakeCanvas.height = window.innerHeight;
+
+        let snake = [{x: 200, y: 200}];
+        let direction = {x: 20, y: 0};
+        let food = {x: Math.floor(Math.random() * snakeCanvas.width / 20) * 20, y: Math.floor(Math.random() * snakeCanvas.height / 20) * 20};
+        let score = 0;
+
+        function drawSnake() {
+            snakeCtx.clearRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+            snakeCtx.fillStyle = "#00ff00";
+            snake.forEach(part => snakeCtx.fillRect(part.x, part.y, 20, 20));
+        }
+
+        function moveSnake() {
+            const head = {x: snake[0].x + direction.x, y: snake[0].y + direction.y};
+
+            // Check for wall collision (infinite loop behavior)
+            if (head.x >= snakeCanvas.width) head.x = 0;
+            if (head.x < 0) head.x = snakeCanvas.width - 20;
+            if (head.y >= snakeCanvas.height) head.y = 0;
+            if (head.y < 0) head.y = snakeCanvas.height - 20;
+
+            // Check for food collision
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                document.getElementById('score').innerText = `Score: ${score}`;
+                food = {x: Math.floor(Math.random() * snakeCanvas.width / 20) * 20, y: Math.floor(Math.random() * snakeCanvas.height / 20) * 20};
+            } else {
+                snake.pop();
+            }
+
+            snake.unshift(head);
+        }
+
+        function drawFood() {
+            snakeCtx.fillStyle = "#ff0000";
+            snakeCtx.fillRect(food.x, food.y, 20, 20);
+        }
+
+        function gameLoop() {
+            moveSnake();
+            drawSnake();
+            drawFood();
+        }
+
+        // Change direction based on key presses
+        window.addEventListener("keydown", e => {
+            switch(e.key) {
+                case "ArrowUp":
+                    if (direction.y === 0) direction = {x: 0, y: -20};
+                    break;
+                case "ArrowDown":
+                    if (direction.y === 0) direction = {x: 0, y: 20};
+                    break;
+                case "ArrowLeft":
+                    if (direction.x === 0) direction = {x: -20, y: 0};
+                    break;
+                case "ArrowRight":
+                    if (direction.x === 0) direction = {x: 20, y: 0};
+                    break;
+            }
+        });
+
+        setInterval(gameLoop, 100);
+
     </script>
 </body>
 </html>
